@@ -33,7 +33,9 @@ typedef struct {
 
 typedef struct {
     employeeRecord employeeList;
-    employeeRecord bracket1, bracket2, bracket3;
+    employeeRecord bracket1;
+    employeeRecord bracket2;
+    employeeRecord bracket3;
 } companyRecord;`)
   const [parsedStructs, setParsedStructs] = useState<any[]>([])
   const { theme, setTheme } = useTheme()
@@ -45,7 +47,8 @@ typedef struct {
   const parseStructs = (codeInput: string) => {
     // Simple regex-based parser for C struct declarations
     const structRegex = /typedef\s+struct\s+(?:\w+\s+)?{([^}]*)}\s+(\w+);/g
-    const fieldRegex = /\s*(\w+)\s*(\*?)\s+(\w+)(?:\[(\d+)\])?;/g
+    // Updated regex to capture arbitrary array sizes, not just numeric ones
+    const fieldRegex = /\s*(\w+)\s*(\*?)\s+(\w+)(?:\[([^\]]+)\])?;/g
 
     const structs: any[] = []
     let match
@@ -61,11 +64,16 @@ typedef struct {
       const fieldString = fieldContent
       while ((fieldMatch = fieldRegexInstance.exec(fieldContent)) !== null) {
         const [__, fieldType, pointerIndicator, fieldName, arraySize] = fieldMatch
+
+        // Check if array size is numeric or an identifier
+        const isNumericSize = arraySize && !isNaN(Number(arraySize))
+
         fields.push({
           type: fieldType,
           name: fieldName,
           isArray: !!arraySize,
-          arraySize: arraySize ? Number.parseInt(arraySize) : undefined,
+          arraySize: isNumericSize ? Number.parseInt(arraySize) : arraySize,
+          isNumericSize: isNumericSize,
           isPointer: pointerIndicator === "*",
         })
       }
@@ -120,7 +128,7 @@ typedef struct {
 
           <Card className="p-4 flex flex-col shadow-md">
             <h2 className="text-xl font-semibold mb-3 font-serif">Structure Diagram</h2>
-            <div className="flex-grow bg-muted/20 rounded-md p-4 overflow-auto">
+            <div className="flex-grow">
               <StructDiagram structs={parsedStructs} />
             </div>
           </Card>
